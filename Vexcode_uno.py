@@ -7,9 +7,9 @@ brain = Brain()
 motor_1 = Motor(Ports.PORT1, GearSetting.RATIO_18_1, False)    # Left drive motor (Port 1)
 motor_5 = Motor(Ports.PORT5, GearSetting.RATIO_18_1, True)     # Right drive motor (Port 5)
 
-# Set default motor velocities (30% velocity for softer movement)
-motor_1.set_velocity(30, PERCENT)
-motor_5.set_velocity(30, PERCENT)
+# Set default motor velocities (15% velocity for slower, smoother movement)
+motor_1.set_velocity(15, PERCENT)
+motor_5.set_velocity(15, PERCENT)
 
 # ANSI escape codes for Black text on White background
 ANSI_BLACK_BG_WHITE = "\033[30;47m"
@@ -19,13 +19,13 @@ def print_black(text=""):
     """Output console text in black with white background."""
     print(ANSI_BLACK_BG_WHITE + str(text) + ANSI_RESET)
 
-def fwd(duration=0.4):
+def fwd(duration=1.2):
     """
     Drives forward using motor_1 (Port 1) and motor_5 (Port 5) simultaneously.
-    Runs at 30% velocity for a soft, smooth drive motion.
+    Runs at 15% velocity for 1.2 seconds for longer forward travel distance.
     """
-    motor_1.set_velocity(30, PERCENT)
-    motor_5.set_velocity(30, PERCENT)
+    motor_1.set_velocity(15, PERCENT)
+    motor_5.set_velocity(15, PERCENT)
    
     motor_1.spin(FORWARD)
     motor_5.spin(FORWARD)
@@ -39,10 +39,10 @@ def fwd(duration=0.4):
 def rt(degrees=235):
     """
     Spins the robot right in place by driving motor_1 forward
-    and motor_5 in reverse simultaneously by 235 degrees.
+    and motor_5 in reverse simultaneously by 235 degrees at 15% velocity.
     """
-    motor_1.set_velocity(30, PERCENT)
-    motor_5.set_velocity(30, PERCENT)
+    motor_1.set_velocity(15, PERCENT)
+    motor_5.set_velocity(15, PERCENT)
     motor_1.spin_for(FORWARD, degrees, DEGREES, wait=False)
     motor_5.spin_for(REVERSE, degrees, DEGREES, wait=True)
     time.sleep(0.1)  # 0.1s cooldown pause
@@ -50,27 +50,27 @@ def rt(degrees=235):
 def lt(degrees=235):
     """
     Spins the robot left in place by driving motor_1 in reverse
-    and motor_5 forward simultaneously by 235 degrees.
+    and motor_5 forward simultaneously by 235 degrees at 15% velocity.
     """
-    motor_1.set_velocity(30, PERCENT)
-    motor_5.set_velocity(30, PERCENT)
+    motor_1.set_velocity(15, PERCENT)
+    motor_5.set_velocity(15, PERCENT)
     motor_1.spin_for(REVERSE, degrees, DEGREES, wait=False)
     motor_5.spin_for(FORWARD, degrees, DEGREES, wait=True)
     time.sleep(0.1)  # 0.1s cooldown pause
 
 def execute_robot_movement():
     """
-    Sequential physical movement sequence:
-    Forward x2 -> Turn Right 235° x2 -> Forward x2 -> Turn Right 235° x2
-    (Screen is preserved throughout the entire movement duration).
+    Sequential physical movement sequence for card plays:
+    Forward x2 -> Clear Screen (card disappears) -> Turn Right 235° x2 -> Forward x2 -> Turn Right 235° x2
     """
     print_black(">>> EXECUTING ROBOT MOVEMENT SEQUENCE <<<")
-    fwd(0.4)
-    fwd(0.4)
+    fwd(1.2)
+    fwd(1.2)
+    brain.screen.clear_screen()  # Card graphic disappears after moving forward twice
     rt(235)
     rt(235)
-    fwd(0.4)
-    fwd(0.4)
+    fwd(1.2)
+    fwd(1.2)
     rt(235)
     rt(235)
 
@@ -91,8 +91,6 @@ def trigger_victory_sequence(winner_name="Player"):
 
     # Animated Confetti & Victory Screen (~2 seconds duration)
     confetti_colors = [Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW, Color.WHITE, Color.PURPLE, Color.ORANGE]
-   
-    is_robot_win = ("BOT" in str(winner_name).upper() or "ROBOT" in str(winner_name).upper())
 
     start_time = time.time()
     while (time.time() - start_time) < 2.0:
@@ -116,16 +114,12 @@ def trigger_victory_sequence(winner_name="Player"):
         # Draw Banner Text
         brain.screen.set_pen_color(Color.YELLOW)
         brain.screen.set_cursor(2, 3)
-        brain.screen.print("GAME OVER!" if is_robot_win else "CONGRATS!")
+        brain.screen.print("CONGRATS!")
 
-        # Render VEXBOT WINS in RED or Player win string in GREEN
-        if is_robot_win:
-            brain.screen.set_pen_color(Color.RED)
-            win_str = "VEXBOT WINS"
-        else:
-            brain.screen.set_pen_color(Color.GREEN)
-            raw_win_str = str(winner_name) + " WINS!"
-            win_str = raw_win_str[:14] if len(raw_win_str) > 14 else raw_win_str
+        # Render Player win string in GREEN
+        brain.screen.set_pen_color(Color.GREEN)
+        raw_win_str = str(winner_name) + " WINS!"
+        win_str = raw_win_str[:14] if len(raw_win_str) > 14 else raw_win_str
 
         brain.screen.set_cursor(3, 2)
         brain.screen.print(win_str)
@@ -143,45 +137,6 @@ def trigger_victory_sequence(winner_name="Player"):
     # Reset screen defaults
     brain.screen.set_fill_color(Color.TRANSPARENT)
     brain.screen.set_pen_color(Color.WHITE)
-
-def show_start_menu():
-    """Renders start menu on VEX Brain allowing selection between Start Game and Instant Lose."""
-    options = ["START GAME", "INSTANT LOSE"]
-    idx = 0
-    needs_redraw = True
-
-    while True:
-        if needs_redraw:
-            brain.screen.clear_screen()
-            brain.screen.set_pen_color(Color.WHITE)
-            brain.screen.set_cursor(1, 1)
-            brain.screen.print("=== UNO ROBOT ===")
-            brain.screen.set_cursor(2, 1)
-            brain.screen.print("================")
-            brain.screen.set_cursor(3, 1)
-            brain.screen.print(("< " + options[idx] + " >")[:16])
-            brain.screen.set_cursor(4, 1)
-            brain.screen.print("================")
-            brain.screen.set_cursor(5, 1)
-            brain.screen.print("<- -> | CHECK")
-            needs_redraw = False
-
-        time.sleep(0.05)
-
-        if brain.buttonLeft.pressing():
-            idx = (idx - 1) % len(options)
-            needs_redraw = True
-            while brain.buttonLeft.pressing():
-                time.sleep(0.05)
-        elif brain.buttonRight.pressing():
-            idx = (idx + 1) % len(options)
-            needs_redraw = True
-            while brain.buttonRight.pressing():
-                time.sleep(0.05)
-        elif brain.buttonCheck.pressing():
-            while brain.buttonCheck.pressing():
-                time.sleep(0.05)
-            return options[idx]
 
 def draw_card_full_screen(card_str, color_code):
     """Renders full screen graphical card graphic on VEX Brain screen."""
@@ -345,6 +300,7 @@ def draw_card_full_screen(card_str, color_code):
 
             brain.screen.draw_line(159-18-i, 107-85, 159-18-i, 107-95)
             brain.screen.draw_line(159-14, 107-88-i, 159-26, 107-88-i)
+            brain.screen.draw_line(159-10, 107-66, 159-10, 107-79)
             brain.screen.draw_line(159-10, 107-75-i, 159-20, 107-75-i)
             brain.screen.draw_line(159-16-i, 107-75, 159-16-i, 107-66)
             brain.screen.draw_line(159-10, 107-66-i, 159-30, 107-66-i)
@@ -448,6 +404,9 @@ def parse_card(card_str):
     return ("Unknown", "Unknown")
 
 def is_valid_play(card_str, top_card, active_color):
+    if not top_card:
+        return True
+
     played_color, played_val = parse_card(card_str)
    
     if played_color == "Wild":
@@ -463,8 +422,9 @@ def is_valid_play(card_str, top_card, active_color):
 
     return False
 
-def select_wild_color_human():
-    colors = ['Red', 'Yellow', 'Green', 'Blue']
+def select_incoming_attack():
+    """Renders UI menu to check for incoming attack options: DRAW NONE, DRAW 2, DRAW 4."""
+    options = ["DRAW NONE", "DRAW 2", "DRAW 4"]
     idx = 0
     needs_redraw = True
 
@@ -473,11 +433,11 @@ def select_wild_color_human():
             brain.screen.clear_screen()
             brain.screen.set_pen_color(Color.WHITE)
             brain.screen.set_cursor(1, 1)
-            brain.screen.print("PICK NEW COLOR")
+            brain.screen.print("INCOMING ATTACK?")
             brain.screen.set_cursor(2, 1)
             brain.screen.print("================")
             brain.screen.set_cursor(3, 1)
-            brain.screen.print(("< " + colors[idx] + " >")[:16])
+            brain.screen.print(("< " + options[idx] + " >")[:16])
             brain.screen.set_cursor(4, 1)
             brain.screen.print("================")
             brain.screen.set_cursor(5, 1)
@@ -487,19 +447,121 @@ def select_wild_color_human():
         time.sleep(0.05)
 
         if brain.buttonLeft.pressing():
-            idx = (idx - 1) % len(colors)
+            idx = (idx - 1) % len(options)
             needs_redraw = True
             while brain.buttonLeft.pressing():
                 time.sleep(0.05)
         elif brain.buttonRight.pressing():
-            idx = (idx + 1) % len(colors)
+            idx = (idx + 1) % len(options)
             needs_redraw = True
             while brain.buttonRight.pressing():
                 time.sleep(0.05)
         elif brain.buttonCheck.pressing():
             while brain.buttonCheck.pressing():
                 time.sleep(0.05)
-            return colors[idx]
+            return options[idx]
+
+def declare_color_prompt():
+    """Displays DECLARE A COLOR prompt and requires pressing CHECK to continue."""
+    brain.screen.clear_screen()
+    brain.screen.set_pen_color(Color.WHITE)
+    brain.screen.set_cursor(1, 1)
+    brain.screen.print("DECLARE A COLOR")
+    brain.screen.set_cursor(2, 1)
+    brain.screen.print("================")
+    brain.screen.set_cursor(3, 1)
+    brain.screen.print("ok")
+    brain.screen.set_cursor(4, 1)
+    brain.screen.print("")
+    brain.screen.set_cursor(5, 1)
+    brain.screen.print("[PRESS CHECK]")
+
+    while not brain.buttonCheck.pressing():
+        time.sleep(0.05)
+    while brain.buttonCheck.pressing():
+        time.sleep(0.05)
+
+def select_top_card_manual():
+    """Renders menus to select the top card color and then the card number/value."""
+    colors = ['Red', 'Yellow', 'Green', 'Blue']
+    values = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Skip', 'Reverse', '+2']
+   
+    # 1. Select Color
+    c_idx = 0
+    needs_redraw = True
+    while True:
+        if needs_redraw:
+            brain.screen.clear_screen()
+            brain.screen.set_pen_color(Color.WHITE)
+            brain.screen.set_cursor(1, 1)
+            brain.screen.print("TOP CARD COLOR")
+            brain.screen.set_cursor(2, 1)
+            brain.screen.print("================")
+            brain.screen.set_cursor(3, 1)
+            brain.screen.print(("< " + colors[c_idx] + " >")[:16])
+            brain.screen.set_cursor(4, 1)
+            brain.screen.print("================")
+            brain.screen.set_cursor(5, 1)
+            brain.screen.print("<- -> | CHECK")
+            needs_redraw = False
+
+        time.sleep(0.05)
+
+        if brain.buttonLeft.pressing():
+            c_idx = (c_idx - 1) % len(colors)
+            needs_redraw = True
+            while brain.buttonLeft.pressing():
+                time.sleep(0.05)
+        elif brain.buttonRight.pressing():
+            c_idx = (c_idx + 1) % len(colors)
+            needs_redraw = True
+            while brain.buttonRight.pressing():
+                time.sleep(0.05)
+        elif brain.buttonCheck.pressing():
+            while brain.buttonCheck.pressing():
+                time.sleep(0.05)
+            chosen_color = colors[c_idx]
+            break
+
+    # 2. Select Value / Number
+    v_idx = 0
+    needs_redraw = True
+    while True:
+        if needs_redraw:
+            brain.screen.clear_screen()
+            brain.screen.set_pen_color(Color.WHITE)
+            brain.screen.set_cursor(1, 1)
+            brain.screen.print("TOP CARD VALUE")
+            brain.screen.set_cursor(2, 1)
+            brain.screen.print("================")
+            brain.screen.set_cursor(3, 1)
+            brain.screen.print(("< " + values[v_idx] + " >")[:16])
+            brain.screen.set_cursor(4, 1)
+            brain.screen.print("================")
+            brain.screen.set_cursor(5, 1)
+            brain.screen.print("<- -> | CHECK")
+            needs_redraw = False
+
+        time.sleep(0.05)
+
+        if brain.buttonLeft.pressing():
+            v_idx = (v_idx - 1) % len(values)
+            needs_redraw = True
+            while brain.buttonLeft.pressing():
+                time.sleep(0.05)
+        elif brain.buttonRight.pressing():
+            v_idx = (v_idx + 1) % len(values)
+            needs_redraw = True
+            while brain.buttonRight.pressing():
+                time.sleep(0.05)
+        elif brain.buttonCheck.pressing():
+            while brain.buttonCheck.pressing():
+                time.sleep(0.05)
+            chosen_val = values[v_idx]
+            break
+
+    selected_top = chosen_color + chosen_val
+    return selected_top, chosen_color
 
 def format_hand_lines(hand):
     lines = []
@@ -523,16 +585,40 @@ def format_hand_lines(hand):
     return lines
 
 def draw_cards_from_deck(deck, hand, count, active_color="Red"):
-    """Draws cards from shared deck, renders the card BACK graphic on screen, and executes movement sequence."""
+    """
+    Moves forward twice first, flashes each drawn card on screen,
+    clears the screen, and completes the remaining movement cycle.
+    """
+    print_black(">>> EXECUTING ROBOT MOVEMENT & DRAW SEQUENCE <<<")
+   
+    # 1. Robot moves forward twice
+    fwd(1.2)
+    fwd(1.2)
+
+    # 2. Flash cards on screen during drawing
     drawn = []
     for _ in range(count):
         if len(deck) > 0:
             c = deck.pop()
             hand.append(c)
             drawn.append(c)
-            # Render card backside graphic throughout entire movement sequence
+           
             draw_card_full_screen("BACK", "BLACK")
-            execute_robot_movement()
+            time.sleep(0.3)
+            brain.screen.clear_screen()
+            time.sleep(0.1)
+
+    # 3. Disappear (screen cleared) until movement cycle finishes
+    brain.screen.clear_screen()
+
+    # 4. Finish remaining movement cycle
+    rt(235)
+    rt(235)
+    fwd(1.2)
+    fwd(1.2)
+    rt(235)
+    rt(235)
+
     return drawn
 
 def handle_skip_screen(player_name, reason="TURN SKIPPED!"):
@@ -550,51 +636,27 @@ def handle_skip_screen(player_name, reason="TURN SKIPPED!"):
     brain.screen.print(" Passing Turn... ")
     time.sleep(1.8)
 
-def display_human_turn(player_name, hand, robot_hand, deck, top_card, active_color):
+def display_human_turn(player_name, hand, deck, top_card, active_color):
     p_name = str(player_name)
    
     print_black("---------------------------------")
     print_black("=== " + p_name.upper() + "'S TURN ===")
     print_black("Top Card: " + str(top_card) + " (Active Color: " + active_color + ")")
     print_black("Shared Draw Deck Remaining: " + str(len(deck)) + " cards")
-    print_black("Player Hand (" + str(len(hand)) + " cards):")
+    print_black("Current Hand (" + str(len(hand)) + " cards):")
     for i, card in enumerate(hand):
         valid_mark = " [PLAYABLE]" if is_valid_play(card, top_card, active_color) else ""
         print_black("  " + str(i + 1) + ". " + str(card) + valid_mark)
-    print_black("VEX Robot Hand (" + str(len(robot_hand)) + " cards): " + str(robot_hand))
     print_black("---------------------------------")
 
-    # 1. Privacy Pass Screen
-    pass_msg = "PASS TO " + p_name
-    top_msg = "Top:" + shorten_card(top_card) + " (" + active_color[0] + ")"
-
+    # 1. Card Viewing Screen (Top card text omitted)
     brain.screen.clear_screen()
     brain.screen.set_pen_color(Color.WHITE)
-    brain.screen.set_cursor(1, 1)
-    brain.screen.print("================")
-    brain.screen.set_cursor(2, 1)
-    brain.screen.print(pass_msg[:16])
-    brain.screen.set_cursor(3, 1)
-    brain.screen.print(top_msg[:16])
-    brain.screen.set_cursor(4, 1)
-    brain.screen.print("================")
-    brain.screen.set_cursor(5, 1)
-    brain.screen.print("[PRESS CHECK]")
-
-    while not brain.buttonCheck.pressing():
-        time.sleep(0.05)
-    while brain.buttonCheck.pressing():
-        time.sleep(0.05)
-
-    # 2. Card Viewing Screen
-    brain.screen.clear_screen()
-    brain.screen.set_pen_color(Color.WHITE)
-    header_msg = p_name + " (" + str(len(hand)) + ")"
    
     brain.screen.set_cursor(1, 1)
-    brain.screen.print(header_msg[:16])
+    brain.screen.print("")
     brain.screen.set_cursor(2, 1)
-    brain.screen.print(top_msg[:16])
+    brain.screen.print("")
 
     card_lines = format_hand_lines(hand)
     for idx in range(2):
@@ -614,23 +676,36 @@ def display_human_turn(player_name, hand, robot_hand, deck, top_card, active_col
     while brain.buttonCheck.pressing():
         time.sleep(0.05)
 
-    # 3. Card Picking Screen (Graphics rendering actual cards with top_card displayed at the top)
+    # 2. Incoming Attack Selection Menu
+    attack_choice = select_incoming_attack()
+    if attack_choice == "DRAW 2":
+        print_black(">>> " + p_name + " ACCEPTED DRAW 2 ATTACK <<<")
+        draw_cards_from_deck(deck, hand, 2, active_color)
+        handle_skip_screen(p_name, "+2 ATTACK SKIPPED")
+        return top_card, active_color, None
+    elif attack_choice == "DRAW 4":
+        print_black(">>> " + p_name + " ACCEPTED DRAW 4 ATTACK <<<")
+        draw_cards_from_deck(deck, hand, 4, active_color)
+        handle_skip_screen(p_name, "+4 ATTACK SKIPPED")
+        return top_card, active_color, None
+
+    # 3. Pick Top Card Menu (Color then Number)
+    top_card, active_color = select_top_card_manual()
+    top_msg = "Top:" + shorten_card(top_card) + " (" + active_color[0] + ")"
+
+    # 4. Card Picking Screen (Only playable cards in hand are shown/selectable)
     selected_index = 0
     needs_redraw = True
     status_override = ""
     played_card = None
-    uno_called = False
 
     while True:
-        has_uno_opt = (len(hand) == 1)
-        if has_uno_opt:
-            uno_opt_index = len(hand)
-            draw_opt_index = len(hand) + 1
-            total_options = len(hand) + 2
-        else:
-            uno_opt_index = -1
-            draw_opt_index = len(hand)
-            total_options = len(hand) + 1
+        # Filter hand to list only valid playable cards
+        playable_indices = [i for i, card in enumerate(hand) if is_valid_play(card, top_card, active_color)]
+        num_playable = len(playable_indices)
+
+        draw_opt_index = num_playable
+        total_options = num_playable + 1
 
         if selected_index >= total_options:
             selected_index = 0
@@ -648,17 +723,13 @@ def display_human_turn(player_name, hand, robot_hand, deck, top_card, active_col
                 needs_redraw = True
                 continue
             else:
-                if selected_index < len(hand):
-                    card_str = hand[selected_index]
+                if selected_index < num_playable:
+                    orig_idx = playable_indices[selected_index]
+                    card_str = hand[orig_idx]
                     trigger_card_display(card_str, active_color)
                     brain.screen.set_pen_color(Color.WHITE)
                     brain.screen.set_cursor(1, 1)
                     brain.screen.print(top_msg[:16])
-                elif selected_index == uno_opt_index:
-                    draw_card_full_screen("BACK", "BLACK")
-                    brain.screen.set_pen_color(Color.WHITE)
-                    brain.screen.set_cursor(1, 1)
-                    brain.screen.print(" [ SAY UNO! ] ")
                 else:
                     draw_card_full_screen("BACK", "BLACK")
                     brain.screen.set_pen_color(Color.WHITE)
@@ -685,56 +756,33 @@ def display_human_turn(player_name, hand, robot_hand, deck, top_card, active_col
             while brain.buttonCheck.pressing():
                 time.sleep(0.05)
            
-            if selected_index < len(hand):
-                candidate_card = hand[selected_index]
-                if is_valid_play(candidate_card, top_card, active_color):
-                    played_card = hand.pop(selected_index)
-                    top_card = played_card
-                    p_col, _ = parse_card(played_card)
+            if selected_index < num_playable:
+                orig_idx = playable_indices[selected_index]
+                played_card = hand.pop(orig_idx)
 
-                    print_black(">>> " + p_name + " PLAYED CARD: " + str(played_card) + " <<<")
+                print_black(">>> " + p_name + " PLAYED CARD: " + str(played_card) + " <<<")
 
-                    if p_col == "Wild":
-                        new_color = select_wild_color_human()
-                        active_color = new_color
-                        print_black(">>> " + p_name + " CHANGED ACTIVE COLOR TO: " + active_color + " <<<")
-                    else:
-                        active_color = p_col
+                # Check if playing down to exactly 1 card triggers UNO (not when playing the last card)
+                is_uno = (len(hand) == 1)
+                if is_uno:
+                    brain.play_sound(SoundType.SIREN)
+                    print_black("*** " + p_name + " AUTOMATICALLY CALLED UNO! ***")
 
-                    trigger_card_display(played_card, active_color)
-                    execute_robot_movement()
+                # If a wild card is played, require DECLARE A COLOR confirmation screen
+                p_col, _ = parse_card(played_card)
+                if p_col == "Wild":
+                    declare_color_prompt()
 
-                    if len(hand) == 0:
-                        if not uno_called:
-                            print_black("!!! " + p_name + " played last card WITHOUT saying UNO! (+2 Penalty Cards) !!!")
-                            draw_cards_from_deck(deck, hand, 2, active_color)
-                           
-                            brain.screen.clear_screen()
-                            brain.screen.set_pen_color(Color.WHITE)
-                            brain.screen.set_cursor(1, 1)
-                            brain.screen.print("================")
-                            brain.screen.set_cursor(2, 1)
-                            brain.screen.print(" FORGOT UNO! ")
-                            brain.screen.set_cursor(3, 1)
-                            brain.screen.print(" +2 CARDS DRAWN ")
-                            brain.screen.set_cursor(4, 1)
-                            brain.screen.print("================")
-                            brain.screen.set_cursor(5, 1)
-                            brain.screen.print(" Turn Ending... ")
-                            time.sleep(2.0)
-                        else:
-                            print_black("*** " + p_name + " CALLED UNO AND PLAYED FINAL CARD! ***")
-                    break
-                else:
-                    status_override = "INVALID MATCH!"
-                    needs_redraw = True
-            elif selected_index == uno_opt_index:
-                if not uno_called:
-                    brain.play_sound(SoundType.SIREN)  # Valid standard VEX SoundType
-                    uno_called = True
-                print_black(">>> " + p_name + " CALLED UNO! <<<")
-                status_override = ""
-                needs_redraw = True
+                trigger_card_display(played_card, active_color)
+
+                # Render UNO! header on top of screen when playing down to 1 card
+                if is_uno:
+                    brain.screen.set_pen_color(Color.YELLOW)
+                    brain.screen.set_cursor(1, 1)
+                    brain.screen.print("  *** UNO! ***  ")
+
+                execute_robot_movement()
+                break
             else:
                 played_card = None
                 if len(deck) > 0:
@@ -744,7 +792,7 @@ def display_human_turn(player_name, hand, robot_hand, deck, top_card, active_col
                     print_black("!!! Shared Draw Deck is empty! !!!")
                 break
 
-    # 4. Conceal Transition Screen
+    # Conceal Transition Screen
     brain.screen.clear_screen()
     brain.screen.set_pen_color(Color.WHITE)
     brain.screen.set_cursor(1, 1)
@@ -761,95 +809,12 @@ def display_human_turn(player_name, hand, robot_hand, deck, top_card, active_col
 
     return top_card, active_color, played_card
 
-def display_robot_turn(player_name, hand, player_hand, deck, top_card, active_color):
-    p_name = str(player_name)
-   
-    playable_indices = [i for i, card in enumerate(hand) if is_valid_play(card, top_card, active_color)]
-    uno_called = False
-
-    print_black("---------------------------------")
-    print_black("=== " + p_name.upper() + "'S TURN (ROBOT) ===")
-    print_black("Top Card: " + str(top_card) + " (Active Color: " + active_color + ")")
-    print_black("Shared Draw Deck Remaining: " + str(len(deck)) + " cards")
-    print_black("Robot Hand (" + str(len(hand)) + " cards): " + str(hand))
-    print_black("Player Hand (" + str(len(player_hand)) + " cards): " + str(player_hand))
-
-    if len(playable_indices) > 0:
-        if len(hand) == 1:
-            uno_called = True
-            brain.play_sound(SoundType.SIREN)  # Valid standard VEX SoundType
-            print_black(">>> " + p_name + " CALLED UNO! <<<")
-
-        chosen_idx = playable_indices[0]
-        played_card = hand.pop(chosen_idx)
-        top_card = played_card
-        p_col, _ = parse_card(played_card)
-
-        print_black(">>> ROBOT PLAYED CARD: " + str(played_card) + " <<<")
-
-        if p_col == "Wild":
-            color_counts = {'Red': 0, 'Yellow': 0, 'Green': 0, 'Blue': 0}
-            for c in hand:
-                col, _ = parse_card(c)
-                if col in color_counts:
-                    color_counts[col] += 1
-           
-            # Select most frequent color, or random valid color if no color cards remain
-            best_color = max(color_counts, key=color_counts.get)
-            if color_counts[best_color] == 0:
-                best_color = random.choice(['Red', 'Yellow', 'Green', 'Blue'])
-           
-            active_color = best_color
-            print_black(">>> ROBOT CHANGED ACTIVE COLOR TO: " + active_color + " <<<")
-            action_desc = "Played: " + shorten_card(played_card) + " -> " + active_color[:1]
-        else:
-            active_color = p_col
-            action_desc = "Played: " + shorten_card(played_card)
-
-        trigger_card_display(played_card, active_color)
-        execute_robot_movement()
-
-        if len(hand) == 0 and not uno_called:
-            print_black("!!! " + p_name + " forgot to say UNO! Drawing 2 penalty cards. !!!")
-            draw_cards_from_deck(deck, hand, 2, active_color)
-    else:
-        played_card = None
-        if len(deck) > 0:
-            drawn_cards = draw_cards_from_deck(deck, hand, 1, active_color)
-            print_black(">>> ROBOT DREW CARD FROM SHARED DECK: " + str(drawn_cards[0]) + " <<<")
-            action_desc = "Drew a card"
-        else:
-            print_black("!!! Shared Draw Deck is empty! !!!")
-            action_desc = "Passed (Deck Empty)"
-
-    print_black("Cards remaining in Robot hand: " + str(len(hand)))
-    print_black("---------------------------------")
-
-    turn_msg = p_name + " TURN"
-    hand_size_msg = "Hand size: " + str(len(hand))
-
-    brain.screen.clear_screen()
-    brain.screen.set_pen_color(Color.WHITE)
-    brain.screen.set_cursor(1, 1)
-    brain.screen.print(turn_msg[:16])
-    brain.screen.set_cursor(2, 1)
-    brain.screen.print(action_desc[:16])
-    brain.screen.set_cursor(3, 1)
-    brain.screen.print(("Color: " + active_color)[:16])
-    brain.screen.set_cursor(4, 1)
-    brain.screen.print(hand_size_msg[:16])
-    brain.screen.set_cursor(5, 1)
-    brain.screen.print("Auto-Passing...")
-
-    time.sleep(2.0)
-    return top_card, active_color, played_card
-
 def setup_and_play():
     shared_deck = create_uno_deck()
     shuffle_deck(shared_deck)
 
-    players = ["Player", "VEX Robot"]
-    hands = {"Player": [], "VEX Robot": []}
+    players = ["Player"]
+    hands = {"Player": []}
 
     cards_per_player = 7
     for i in range(cards_per_player):
@@ -857,49 +822,22 @@ def setup_and_play():
             if len(shared_deck) > 0:
                 hands[player].append(shared_deck.pop())
 
-    if len(shared_deck) > 0:
-        top_card = shared_deck.pop()
-    else:
-        top_card = "Red0"
-
-    initial_color, _ = parse_card(top_card)
-    active_color = "Red" if initial_color == "Wild" else initial_color
+    # Start match with no initial top card; first card played sets the pile
+    top_card = ""
+    active_color = "Red"
 
     print_black("=========================================")
     print_black("=== UNO GAME INITIALIZED ===")
-    print_black("Top Starting Card: " + str(top_card) + " | Active Color: " + active_color)
     print_black("Shared Draw Deck Count: " + str(len(shared_deck)) + " cards")
     print_black("Player Hand (" + str(len(hands["Player"])) + " cards): " + str(hands["Player"]))
-    print_black("Robot Hand (" + str(len(hands["VEX Robot"])) + " cards): " + str(hands["VEX Robot"]))
     print_black("=========================================")
     print_black("")
 
     current_idx = 0
-    pending_draws = 0
     skip_next = False
 
     while True:
         current_player = players[current_idx]
-
-        if pending_draws > 0:
-            drawn_cards = draw_cards_from_deck(shared_deck, hands[current_player], pending_draws, active_color)
-            print_black(">>> " + current_player + " DREW " + str(len(drawn_cards)) + " PENALTY CARD(S): " + str(drawn_cards) + " <<<")
-           
-            brain.screen.clear_screen()
-            brain.screen.set_pen_color(Color.WHITE)
-            brain.screen.set_cursor(1, 1)
-            brain.screen.print("================")
-            brain.screen.set_cursor(2, 1)
-            brain.screen.print((current_player[:16]))
-            brain.screen.set_cursor(3, 1)
-            brain.screen.print(("+" + str(pending_draws) + " CARDS DRAWN")[:16])
-            brain.screen.set_cursor(4, 1)
-            brain.screen.print("================")
-            brain.screen.set_cursor(5, 1)
-            brain.screen.print(" Please Wait... ")
-            time.sleep(1.8)
-
-            pending_draws = 0
 
         if skip_next:
             print_black(">>> " + current_player + "'S TURN WAS SKIPPED! <<<")
@@ -908,35 +846,19 @@ def setup_and_play():
             current_idx = (current_idx + 1) % len(players)
             continue
 
-        if current_player == "VEX Robot":
-            top_card, active_color, played_card = display_robot_turn(
-                current_player, hands["VEX Robot"], hands["Player"], shared_deck, top_card, active_color
-            )
-        else:
-            top_card, active_color, played_card = display_human_turn(
-                current_player, hands["Player"], hands["VEX Robot"], shared_deck, top_card, active_color
-            )
+        top_card, active_color, played_card = display_human_turn(
+            current_player, hands[current_player], shared_deck, top_card, active_color
+        )
 
         if len(hands[current_player]) == 0:
-            winner = "VEXBOT" if current_player == "VEX Robot" else current_player
-            trigger_victory_sequence(winner)
+            trigger_victory_sequence(current_player)
             break
 
         if played_card is not None:
             _, val = parse_card(played_card)
-            if val == "Skip" or val == "Reverse":
-                skip_next = True
-            elif val == "+2":
-                pending_draws = 2
-                skip_next = True
-            elif val == "Wild+4":
-                pending_draws = 4
+            if val == "Skip" or val == "Reverse" or val == "+2" or val == "Wild+4":
                 skip_next = True
 
         current_idx = (current_idx + 1) % len(players)
 
-selection = show_start_menu()
-if selection == "INSTANT LOSE":
-    trigger_victory_sequence("VEXBOT")
-else:
-    setup_and_play()
+setup_and_play()
